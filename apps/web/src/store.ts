@@ -12,14 +12,19 @@ function saved(): Credentials | null {
     return null;
   }
 }
-export const socket: Socket<ServerEvents, ClientEvents> =
-  import.meta.env.VITE_HOSTED === 'true'
-    ? (new HostedTransport() as unknown as Socket<ServerEvents, ClientEvents>)
-    : io(
-        import.meta.env.VITE_SERVER_URL ||
-          `${location.protocol}//${location.hostname}:3001`,
-        { autoConnect: false },
-      );
+const useHosted =
+  import.meta.env.VITE_HOSTED === 'true' ||
+  (typeof location !== 'undefined' &&
+    !import.meta.env.VITE_SERVER_URL &&
+    !['localhost', '127.0.0.1'].includes(location.hostname));
+
+export const socket: Socket<ServerEvents, ClientEvents> = useHosted
+  ? (new HostedTransport() as unknown as Socket<ServerEvents, ClientEvents>)
+  : io(
+      import.meta.env.VITE_SERVER_URL ||
+        `${location.protocol}//${location.hostname}:3001`,
+      { autoConnect: false },
+    );
 interface Store {
   room: RoomView | null;
   connected: boolean;
@@ -70,7 +75,7 @@ function chime() {
   oscillator.stop(audio.currentTime + 0.23);
 }
 socket.on('connect', () => {
-  useCourt.setState({ connected: true });
+  useCourt.setState({ connected: true, error: null });
   const seat = saved();
   if (seat)
     socket.emit('room:resume', seat, (result) => {
