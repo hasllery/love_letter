@@ -7,7 +7,7 @@
   },
   "scripts": {
     "dev": "concurrently -k \"pnpm --filter @court/server dev\" \"pnpm --filter @court/web dev\"",
-    "build": "pnpm --filter @court/web build && pnpm --filter @court/server build",
+    "build": "pnpm --filter @court/web build && pnpm --filter @court/server build && node -e \"require('fs').cpSync('apps/web/dist', 'dist', {recursive: true})\"",
     "build:hosted": "node scripts/build-hosted.mjs",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
