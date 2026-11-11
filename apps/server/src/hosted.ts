@@ -96,21 +96,39 @@ function view(room: Room, player: Player, now: number): RoomView {
     previousWinnerStarts: room.previousWinnerStarts,
   };
 }
-const json = (body: unknown, status = 200) =>
-  Response.json(body, { status, headers: { 'Cache-Control': 'no-store' } });
+const json = (body: unknown, status = 200, origin?: string | null) => {
+  const headers = new Headers({
+    'Cache-Control': 'no-store',
+    'Content-Type': 'application/json',
+  });
+  if (origin) {
+    headers.set('Access-Control-Allow-Origin', origin);
+    headers.set('Access-Control-Allow-Credentials', 'true');
+    headers.set('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
+    headers.set('Access-Control-Allow-Headers', 'Content-Type,Authorization');
+  }
+  return new Response(JSON.stringify(body), { status, headers });
+};
 export async function api(
   request: Request,
   db: Database,
   now = Date.now(),
 ): Promise<Response> {
+  const origin = request.headers.get('origin');
   try {
     if (request.method !== 'POST')
-      return json({ ack: { ok: false, error: 'Use POST.' } }, 405);
-    if (
-      request.headers.get('origin') &&
-      request.headers.get('origin') !== new URL(request.url).origin
-    )
-      return json({ ack: { ok: false, error: 'Invalid origin.' } }, 403);
+      return json({ ack: { ok: false, error: 'Use POST.' } }, 405, origin);
+    if (origin) {
+      const reqUrl = new URL(request.url);
+      const isAllowed =
+        origin === reqUrl.origin ||
+        origin.endsWith('.pages.dev') ||
+        origin.endsWith('.workers.dev') ||
+        origin.endsWith('.vercel.app') ||
+        ['localhost', '127.0.0.1'].some((h) => origin.includes(h));
+      if (!isAllowed)
+        return json({ ack: { ok: false, error: 'Invalid origin.' } }, 403, origin);
+    }
     const text = await request.text();
     if (text.length > 16384)
       return json({ ack: { ok: false, error: 'Request too large.' } }, 413);
@@ -462,11 +480,57 @@ async function handleStorage(
   return json({ error: 'Method not allowed' }, 405);
 }
 
+class MemoryDB implements Database {
+  private rows = new Map<string, { version: number; body: string }>();
+  prepare(sql: string) {
+    let args: unknown[] = [];
+    const rows = this.rows;
+    const statement = {
+      bind(...values: unknown[]) {
+        args = values;
+        return statement;
+      },
+      async first<T>() {
+        const row = rows.get(String(args[0]));
+        return row ? (structuredClone(row) as T) : null;
+      },
+      async run() {
+        if (sql.startsWith('INSERT')) {
+          const key = String(args[0]);
+          if (rows.has(key)) return { meta: { changes: 0 } };
+          rows.set(key, { version: 1, body: String(args[1]) });
+        } else {
+          const key = String(args[2]);
+          const row = rows.get(key);
+          if (!row || row.version !== args[3]) return { meta: { changes: 0 } };
+          rows.set(key, { version: row.version + 1, body: String(args[0]) });
+        }
+        return { meta: { changes: 1 } };
+      },
+    };
+    return statement;
+  }
+}
+const fallbackDb = new MemoryDB();
+
 export default {
   async fetch(request: Request, env: Env) {
+    const origin = request.headers.get('origin');
+    if (request.method === 'OPTIONS') {
+      return new Response(null, {
+        status: 204,
+        headers: {
+          'Access-Control-Allow-Origin': origin || '*',
+          'Access-Control-Allow-Credentials': 'true',
+          'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
+          'Access-Control-Allow-Headers':
+            'Content-Type,Authorization,X-Requested-With',
+        },
+      });
+    }
     const path = new URL(request.url).pathname;
-    if (path === '/health') return json({ status: 'ok' });
-    if (path === '/api/court') return api(request, env.DB);
+    if (path === '/health') return json({ status: 'ok' }, 200, origin);
+    if (path === '/api/court') return api(request, env.DB ?? fallbackDb);
     if (path === '/api/oracle' || path === '/api/ai')
       return handleAi(request, env);
     if (path === '/api/storage') return handleStorage(request, env.STORAGE);

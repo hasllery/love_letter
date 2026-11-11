@@ -58,14 +58,37 @@ export function createCourtServer(
   const app = express();
   const http = createServer(app);
   const origins = options.origins ?? ['http://localhost:5173'];
+  function isAllowedOrigin(origin: string | undefined): boolean {
+    if (!origin) return true;
+    if (origins.includes('*') || origins.includes(origin)) return true;
+    try {
+      const url = new URL(origin);
+      if (['localhost', '127.0.0.1', '::1'].includes(url.hostname)) return true;
+      if (/^192\.168\.\d{1,3}\.\d{1,3}$/.test(url.hostname)) return true;
+      if (/^10\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(url.hostname)) return true;
+      if (/^172\.(1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3}$/.test(url.hostname))
+        return true;
+      if (
+        url.hostname.endsWith('.pages.dev') ||
+        url.hostname.endsWith('.vercel.app') ||
+        url.hostname.endsWith('.workers.dev')
+      )
+        return true;
+    } catch {
+      return false;
+    }
+    return false;
+  }
   const io = new Server<ClientEvents, ServerEvents>(http, {
-    cors: { origin: origins, methods: ['GET', 'POST'] },
+    cors: {
+      origin: (requestOrigin, callback) =>
+        callback(null, isAllowedOrigin(requestOrigin)),
+      methods: ['GET', 'POST'],
+      credentials: true,
+    },
     maxHttpBufferSize: 16384,
     allowRequest: (request, done) =>
-      done(
-        null,
-        !request.headers.origin || origins.includes(request.headers.origin),
-      ),
+      done(null, isAllowedOrigin(request.headers.origin)),
   });
   const rooms = new Map<string, Room>();
   const membership = new Map<string, { room: Room; player: Client }>();
