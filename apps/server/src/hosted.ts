@@ -18,9 +18,25 @@ interface Statement {
 export interface Database {
   prepare(sql: string): Statement;
 }
-interface Env {
+export interface R2Bucket {
+  put(
+    key: string,
+    value: ReadableStream | ArrayBuffer | string,
+  ): Promise<unknown>;
+  get(
+    key: string,
+  ): Promise<{ body: ReadableStream; text(): Promise<string> } | null>;
+}
+export interface Ai {
+  run(model: string, input: Record<string, unknown>): Promise<unknown>;
+}
+export interface Env {
   DB: Database;
-  ASSETS: { fetch(request: Request): Promise<Response> };
+  ASSETS?: { fetch(request: Request): Promise<Response> };
+  STORAGE?: R2Bucket;
+  AI?: Ai;
+  GEMINI_API_KEY?: string;
+  GROQ_API_KEY?: string;
 }
 type Player = { id: string; name: string; secret: string; seen: number };
 interface Room {
@@ -314,11 +330,147 @@ export async function api(
     });
   }
 }
+async function handleAi(request: Request, env: Env): Promise<Response> {
+  if (request.method !== 'POST')
+    return json({ error: 'Method not allowed' }, 405);
+  try {
+    const body = (await request.json().catch(() => ({}))) as {
+      prompt?: string;
+      provider?: 'cf' | 'gemini' | 'groq';
+    };
+    const systemPrompt =
+      'You are the Court Oracle of Crimson Court, a royal card game of deduction and deception. Give witty, concise tactical advice or commentary in 2-3 sentences.';
+    const userPrompt = body.prompt || 'Offer royal wisdom for the court today.';
+
+    if ((!body.provider || body.provider === 'cf') && env.AI) {
+      try {
+        const result = (await env.AI.run('@cf/meta/llama-3.1-8b-instruct', {
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt },
+          ],
+        })) as { response?: string };
+        return json({
+          provider: 'cloudflare-workers-ai',
+          model: '@cf/meta/llama-3.1-8b-instruct',
+          advice: result.response ?? 'The Court Oracle remains contemplative.',
+        });
+      } catch (err) {
+        if (body.provider === 'cf') throw err;
+      }
+    }
+
+    if ((!body.provider || body.provider === 'groq') && env.GROQ_API_KEY) {
+      try {
+        const res = await fetch(
+          'https://api.groq.com/openai/v1/chat/completions',
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${env.GROQ_API_KEY}`,
+            },
+            body: JSON.stringify({
+              model: 'llama-3.3-70b-versatile',
+              messages: [
+                { role: 'system', content: systemPrompt },
+                { role: 'user', content: userPrompt },
+              ],
+              max_tokens: 150,
+            }),
+          },
+        );
+        if (res.ok) {
+          const data = (await res.json()) as {
+            choices?: [{ message?: { content?: string } }];
+          };
+          return json({
+            provider: 'groq',
+            model: 'llama-3.3-70b-versatile',
+            advice: data.choices?.[0]?.message?.content ?? '',
+          });
+        }
+      } catch (err) {
+        if (body.provider === 'groq') throw err;
+      }
+    }
+
+    if ((!body.provider || body.provider === 'gemini') && env.GEMINI_API_KEY) {
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${env.GEMINI_API_KEY}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [
+              {
+                role: 'user',
+                parts: [{ text: `${systemPrompt}\n\nUser: ${userPrompt}` }],
+              },
+            ],
+          }),
+        },
+      );
+      if (res.ok) {
+        const data = (await res.json()) as {
+          candidates?: [{ content?: { parts?: [{ text?: string }] } }];
+        };
+        return json({
+          provider: 'gemini',
+          model: 'gemini-1.5-flash',
+          advice: data.candidates?.[0]?.content?.parts?.[0]?.text ?? '',
+        });
+      }
+    }
+
+    return json({
+      provider: 'default',
+      advice:
+        'Keep your Princess hidden, watch the Baron closely, and never let the King swap your secrets away.',
+    });
+  } catch (error) {
+    return json(
+      { error: error instanceof Error ? error.message : 'AI request failed' },
+      500,
+    );
+  }
+}
+
+async function handleStorage(
+  request: Request,
+  storage?: R2Bucket,
+): Promise<Response> {
+  if (!storage) return json({ error: 'R2 storage is not configured' }, 503);
+  const url = new URL(request.url);
+  const key = url.searchParams.get('key');
+  if (!key) return json({ error: 'Missing key parameter' }, 400);
+
+  if (request.method === 'GET') {
+    const object = await storage.get(key);
+    if (!object) return json({ error: 'Object not found' }, 404);
+    const headers = new Headers();
+    headers.set('Content-Type', 'application/json');
+    return new Response(object.body, { headers });
+  }
+
+  if (request.method === 'PUT' || request.method === 'POST') {
+    const data = await request.arrayBuffer();
+    await storage.put(key, data);
+    return json({ ok: true, key });
+  }
+
+  return json({ error: 'Method not allowed' }, 405);
+}
+
 export default {
   async fetch(request: Request, env: Env) {
     const path = new URL(request.url).pathname;
     if (path === '/health') return json({ status: 'ok' });
     if (path === '/api/court') return api(request, env.DB);
-    return env.ASSETS.fetch(request);
+    if (path === '/api/oracle' || path === '/api/ai')
+      return handleAi(request, env);
+    if (path === '/api/storage') return handleStorage(request, env.STORAGE);
+    if (env.ASSETS) return env.ASSETS.fetch(request);
+    return new Response('Not Found', { status: 404 });
   },
 };
