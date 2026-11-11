@@ -18,10 +18,7 @@ function isCloudDomain(): boolean {
   return (
     host.endsWith('.pages.dev') ||
     host.endsWith('.vercel.app') ||
-    host.endsWith('.workers.dev') ||
-    (location.protocol === 'https:' &&
-      !['localhost', '127.0.0.1'].includes(host) &&
-      !/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(host))
+    host.endsWith('.workers.dev')
   );
 }
 
@@ -31,11 +28,7 @@ const useHosted =
 
 export const socket: Socket<ServerEvents, ClientEvents> = useHosted
   ? (new HostedTransport() as unknown as Socket<ServerEvents, ClientEvents>)
-  : io(
-      import.meta.env.VITE_SERVER_URL ||
-        `${location.protocol}//${location.hostname}:3001`,
-      { autoConnect: false },
-    );
+  : io(import.meta.env.VITE_SERVER_URL || undefined, { autoConnect: false });
 interface Store {
   room: RoomView | null;
   connected: boolean;

@@ -125,7 +125,11 @@ export async function api(
         origin.endsWith('.pages.dev') ||
         origin.endsWith('.workers.dev') ||
         origin.endsWith('.vercel.app') ||
-        ['localhost', '127.0.0.1'].some((h) => origin.includes(h));
+        origin.endsWith('.trycloudflare.com') ||
+        origin.endsWith('.ngrok-free.app') ||
+        origin.endsWith('.loca.lt') ||
+        ['localhost', '127.0.0.1'].some((h) => origin.includes(h)) ||
+        /^https?:\/\/(192\.168|10\.|172\.(1[6-9]|2\d|3[0-1]))\./.test(origin);
       if (!isAllowed)
         return json({ ack: { ok: false, error: 'Invalid origin.' } }, 403, origin);
     }

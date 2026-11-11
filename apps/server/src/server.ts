@@ -25,6 +25,7 @@ import {
   toPlayerView,
   type State,
 } from '@court/engine';
+import hostedWorker, { type Env } from './hosted';
 
 type Client = {
   id: string;
@@ -94,6 +95,32 @@ export function createCourtServer(
   const membership = new Map<string, { room: Room; player: Client }>();
   const rates = new Map<string, { count: number; since: number }>();
   app.get('/health', (_req, res) => res.json({ status: 'ok' }));
+  app.use(express.json({ limit: '64kb' }));
+  app.all('/api/court', async (req, res) => {
+    try {
+      const host = req.get('host') ?? 'localhost';
+      const url = `${req.protocol}://${host}${req.originalUrl}`;
+      const headers = new Headers();
+      for (const [k, v] of Object.entries(req.headers)) {
+        if (typeof v === 'string') headers.set(k, v);
+        else if (Array.isArray(v)) headers.set(k, v.join(', '));
+      }
+      const webReq = new Request(url, {
+        method: req.method,
+        headers,
+        body: ['GET', 'HEAD'].includes(req.method)
+          ? undefined
+          : JSON.stringify(req.body),
+      });
+      const webRes = await hostedWorker.fetch(webReq, {} as Env);
+      res.status(webRes.status);
+      webRes.headers.forEach((val, key) => res.setHeader(key, val));
+      const buf = Buffer.from(await webRes.arrayBuffer());
+      res.send(buf);
+    } catch {
+      res.status(500).json({ ack: { ok: false, error: 'Server error' } });
+    }
+  });
   app.disable('x-powered-by');
   function view(room: Room, player: Client): RoomView {
     return {
