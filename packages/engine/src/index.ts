@@ -209,15 +209,30 @@ function finishTurn(s: State): void {
   const alive = s.players.filter((p) => p.alive);
   if (alive.length <= 1 || !s.deck.length) {
     const before = s.players.map((p) => p.tokens);
-    const best = Math.max(...alive.map((p) => p.hand[0]!.rank));
-    const top = alive.filter((p) => p.hand[0]!.rank === best);
     const sum = (p: Player) => p.discards.reduce((a, c) => a + c.rank, 0);
-    const highestDiscards = Math.max(...top.map(sum));
-    const winners = top.filter((p) => sum(p) === highestDiscards);
+    let winners: Player[];
+    if (alive.length <= 1) {
+      winners = alive;
+    } else {
+      // Deck exhausted: winner is announced by the sum of card score of the placed deck
+      const highestScore = Math.max(...alive.map(sum));
+      const top = alive.filter((p) => sum(p) === highestScore);
+      if (top.length === 1) {
+        winners = top;
+      } else {
+        // Break tie with surviving hand card rank, if still tied then share
+        const bestHand = Math.max(...top.map((p) => p.hand[0]?.rank ?? 0));
+        winners = top.filter((p) => (p.hand[0]?.rank ?? 0) === bestHand);
+      }
+    }
     s.roundWinners = winners.map((p) => p.id);
     for (const p of winners) p.tokens++;
+    const winReason =
+      alive.length <= 1
+        ? 'last player standing'
+        : 'highest placed card score';
     s.events.push({
-      message: `${winners.map((p) => p.name).join(' & ')} ${winners.length === 1 ? 'wins' : 'share'} the round (+1 token).`,
+      message: `${winners.map((p) => p.name).join(' & ')} ${winners.length === 1 ? 'wins' : 'share'} the round (${winReason}, +1 token).`,
     });
     const spies = alive.filter((p) => p.discards.some((c) => c.rank === 0));
     if (spies.length === 1) {
@@ -381,6 +396,7 @@ export function toPlayerView(
           return {
             playerId: p.id,
             hand: structuredClone(p.hand),
+            discards: structuredClone(p.discards),
             handValue,
             discardTotal,
             cardTotal: handValue + discardTotal,
@@ -487,14 +503,22 @@ export function assertInvariants(s: State): void {
     throw new Error('Invalid match winners.');
   if (s.phase === 'roundEnd' || s.phase === 'gameOver') {
     const alive = s.players.filter((p) => p.alive);
-    const scores = alive.map(
-      (p) =>
-        p.hand[0]!.rank * 1000 + p.discards.reduce((sum, c) => sum + c.rank, 0),
-    );
-    const best = Math.max(...scores);
-    const expected = alive
-      .filter((_, i) => scores[i] === best)
-      .map((p) => p.id);
+    let expected: string[];
+    if (alive.length <= 1) {
+      expected = alive.map((p) => p.id);
+    } else {
+      const sum = (p: Player) => p.discards.reduce((a, c) => a + c.rank, 0);
+      const highestScore = Math.max(...alive.map(sum));
+      const top = alive.filter((p) => sum(p) === highestScore);
+      if (top.length === 1) {
+        expected = top.map((p) => p.id);
+      } else {
+        const bestHand = Math.max(...top.map((p) => p.hand[0]?.rank ?? 0));
+        expected = top
+          .filter((p) => (p.hand[0]?.rank ?? 0) === bestHand)
+          .map((p) => p.id);
+      }
+    }
     if (!expected.length || expected.join(',') !== s.roundWinners.join(','))
       throw new Error('Invalid round winners or shared tie.');
     const match = s.players

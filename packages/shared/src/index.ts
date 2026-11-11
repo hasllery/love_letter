@@ -121,6 +121,7 @@ export interface GameEvent {
 export interface RoundResult {
   playerId: string;
   hand: Card[];
+  discards?: Card[];
   discardTotal: number;
   handValue: number;
   cardTotal: number;

@@ -142,12 +142,17 @@ function Scores({ game, you }: { game: GameView; you: string }) {
 }
 function Discards({ player }: { player: PublicPlayer }) {
   const latest = player.discards.slice(-6);
+  const placedScore = player.discards.reduce((sum, c) => sum + c.rank, 0);
   return (
     <div
       className="played-tray"
       data-motion-anchor={`tray:${player.id}`}
-      aria-label={`${player.name} discards`}
+      aria-label={`${player.name} placed cards, score ${placedScore}`}
     >
+      <div className="tray-score-badge" title={`Placed deck score: ${placedScore}`}>
+        <span className="tray-score-lbl">Placed</span>
+        <b className="tray-score-num">Σ {placedScore}</b>
+      </div>
       {Array.from({ length: 6 }, (_, i) => (
         <div
           className="tray-slot"
@@ -396,9 +401,23 @@ export function Table({ room }: { room: RoomView }) {
         {timedTurn && <div className="turn-glow" aria-hidden="true" />}
         <Tracker game={game} />
         <Scores game={game} you={room.you} />
-        <div className="table-buttons">
-          <button onClick={() => setLog(true)}>☷ Activity</button>
+        <div className="table-top-center-buttons">
           <button
+            className="top-court-btn exit-court-btn"
+            onClick={() => setLeave(true)}
+            aria-label="Leave court"
+          >
+            ↪ Exit Court
+          </button>
+          <button
+            className="top-court-btn activity-btn"
+            onClick={() => setLog(true)}
+            aria-label="Court activity"
+          >
+            ☷ Activity
+          </button>
+          <button
+            className="top-court-btn invite-btn"
             onClick={() => {
               const url = new URL(location.href);
               url.searchParams.set('room', room.code);
@@ -412,11 +431,9 @@ export function Table({ room }: { room: RoomView }) {
                   useCourt.getState().setError(`Share room code ${room.code}`),
                 );
             }}
+            aria-label="Invite friends"
           >
             {copied ? 'Copied ✓' : '↗ Invite'}
-          </button>
-          <button onClick={() => setLeave(true)} aria-label="Leave room">
-            ↪ Leave
           </button>
         </div>
         <div className="direction-ring" aria-hidden="true">
@@ -782,7 +799,7 @@ export function Table({ room }: { room: RoomView }) {
             </div>
             <h3>
               {resultIds
-                .map((id) => game.players.find((p) => p.id === id)!.name)
+                .map((id) => game.players.find((p) => p.id === id)?.name ?? id)
                 .join(' & ')}
             </h3>
             <p className="result-copy">
@@ -792,71 +809,109 @@ export function Table({ room }: { room: RoomView }) {
             </p>
             <p className="result-reason">
               {game.deckCount === 0
-                ? 'The draw deck is empty. All surviving hands are revealed.'
-                : 'One player remains. The round is complete.'}
+                ? '🏆 Card Score Champion: The deck was exhausted. The winner is decided by the sum of card score of the placed deck!'
+                : '⚔️ Last Man Standing: All rivals were defeated. The last player standing wins!'}
             </p>
             <p className="result-rule">
-              Highest surviving hand wins 1 gold coin. Played-card totals break
-              ties. The only surviving Spy user earns 1 extra coin.
+              {game.deckCount === 0
+                ? 'When the card deck is over, the winner is announced by the sum of card score of the placed deck. Hand rank breaks ties.'
+                : 'When a player defeats all opponents, the last man standing claims victory.'}
             </p>
-            <div className="round-results">
-              {game.results.map((r) => (
-                <section
-                  className={`result-player ${r.winnerCoins ? 'round-winner' : ''}`}
-                  key={r.playerId}
-                >
-                  <div className="result-player-heading">
-                    <strong>
-                      {game.players.find((p) => p.id === r.playerId)!.name}
-                    </strong>
-                    <span>
-                      {r.survived
-                        ? r.winnerCoins
-                          ? 'Round winner'
-                          : 'Survived'
-                        : 'Eliminated'}
-                    </span>
-                  </div>
-                  <div className="result-hand">
-                    {r.hand.map((c) => (
-                      <div key={c.id}>
-                        <CardFace card={c} />
-                        <span>
-                          {CARDS[c.rank].name} · {c.rank}
+            <div className="round-leaderboard">
+              <div className="leaderboard-table-header">
+                <span className="col-rank">Rank & Player</span>
+                <span className="col-placed">Placed Deck Score</span>
+                <span className="col-hand">Hand Card</span>
+                <span className="col-total">Total Score</span>
+                <span className="col-tokens">Tokens</span>
+              </div>
+              {(() => {
+                const sorted = [...game.results].sort((a, b) => {
+                  if (a.winnerCoins !== b.winnerCoins) return b.winnerCoins - a.winnerCoins;
+                  if (a.survived !== b.survived) return (b.survived ? 1 : 0) - (a.survived ? 1 : 0);
+                  if (a.discardTotal !== b.discardTotal) return b.discardTotal - a.discardTotal;
+                  if (a.cardTotal !== b.cardTotal) return b.cardTotal - a.cardTotal;
+                  return b.totalCoins - a.totalCoins;
+                });
+                const rankBadges = ['🥇 1st', '🥈 2nd', '🥉 3rd', '4th', '5th', '6th'];
+                return sorted.map((r, idx) => {
+                  const p = game.players.find((pl) => pl.id === r.playerId);
+                  const isWinner = r.winnerCoins > 0;
+                  const isMe = r.playerId === room.you;
+                  return (
+                    <section
+                      className={`leaderboard-card ${isWinner ? 'round-winner' : ''} ${!r.survived ? 'is-eliminated' : ''}`}
+                      key={r.playerId}
+                    >
+                      <div className="card-primary-col">
+                        <span className={`rank-chip ${idx === 0 ? 'rank-gold' : ''}`}>
+                          {rankBadges[idx] ?? `${idx + 1}th`}
                         </span>
+                        <div className="player-meta">
+                          <strong className="name-text">
+                            {p?.name ?? 'Player'} {isMe && <small className="you-pill">YOU</small>}
+                          </strong>
+                          <span className={`status-pill ${isWinner ? 'win' : r.survived ? 'alive' : 'out'}`}>
+                            {isWinner ? '👑 Winner' : r.survived ? '⚔️ Survived' : '💀 Defeated'}
+                          </span>
+                        </div>
                       </div>
-                    ))}
-                    {!r.hand.length && <span>No remaining card</span>}
-                  </div>
-                  <dl className="result-totals">
-                    <div>
-                      <dt>Hand</dt>
-                      <dd>{r.handValue}</dd>
-                    </div>
-                    <div>
-                      <dt>Played cards</dt>
-                      <dd>{r.discardTotal}</dd>
-                    </div>
-                    <div>
-                      <dt>Card total</dt>
-                      <dd>{r.cardTotal}</dd>
-                    </div>
-                  </dl>
-                  <div className="coin-breakdown">
-                    {r.winnerCoins > 0 && <span>🟡 Winner +1</span>}
-                    {r.spyCoins > 0 && (
-                      <span className="spy-award">✦ Spy bonus +1</span>
-                    )}
-                    {!r.earnedCoins && <span>No coins this round</span>}
-                  </div>
-                  <div className="coin-total">
-                    <span>
-                      Round <b>+{r.earnedCoins} 🟡</b>
-                    </span>
-                    <strong>Final score: {r.totalCoins} 🟡</strong>
-                  </div>
-                </section>
-              ))}
+
+                      <div className="card-score-col">
+                        <span className="metric-label">Placed Deck Score</span>
+                        <div className="placed-score-pill">
+                          <span className="deck-sigma">Σ</span>
+                          <strong>{r.discardTotal}</strong>
+                          <small>pts</small>
+                        </div>
+                        {r.discards && r.discards.length > 0 && (
+                          <div className="placed-cards-preview" title="Cards placed in deck">
+                            {r.discards.map((c) => (
+                              <span
+                                key={c.id}
+                                className="mini-chip"
+                                style={{ borderColor: CARDS[c.rank].color }}
+                                title={`${CARDS[c.rank].name} (${c.rank})`}
+                              >
+                                {c.rank}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="card-hand-col">
+                        <span className="metric-label">Hand Card</span>
+                        {r.hand.length > 0 ? (
+                          <div className="hand-card-display">
+                            <b>{r.hand[0]!.rank}</b>
+                            <span>{CARDS[r.hand[0]!.rank].name}</span>
+                          </div>
+                        ) : (
+                          <span className="no-hand-text">Eliminated</span>
+                        )}
+                      </div>
+
+                      <div className="card-total-col">
+                        <span className="metric-label">Total Score</span>
+                        <strong className="card-total-value">{r.cardTotal} pts</strong>
+                      </div>
+
+                      <div className="card-tokens-col">
+                        <span className="metric-label">Tokens</span>
+                        <div className="tokens-stack">
+                          {r.earnedCoins > 0 ? (
+                            <span className="round-coin-award">+{r.earnedCoins} 🟡</span>
+                          ) : (
+                            <span className="zero-coin">+0</span>
+                          )}
+                          <strong className="total-coins-score">★ {r.totalCoins}</strong>
+                        </div>
+                      </div>
+                    </section>
+                  );
+                });
+              })()}
             </div>
             {room.hostId === room.you ? (
               <button
