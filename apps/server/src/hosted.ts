@@ -529,11 +529,11 @@ export default {
       });
     }
     const path = new URL(request.url).pathname;
-    if (path === '/health') return json({ status: 'ok' }, 200, origin);
-    if (path === '/api/court') return api(request, env.DB ?? fallbackDb);
-    if (path === '/api/oracle' || path === '/api/ai')
+    if (path === '/health' || path.endsWith('/health')) return json({ status: 'ok' }, 200, origin);
+    if (path === '/api/court' || path.endsWith('/court') || path.endsWith('/api/court')) return api(request, env.DB ?? fallbackDb);
+    if (path === '/api/oracle' || path === '/api/ai' || path.endsWith('/oracle') || path.endsWith('/ai'))
       return handleAi(request, env);
-    if (path === '/api/storage') return handleStorage(request, env.STORAGE);
+    if (path === '/api/storage' || path.endsWith('/storage')) return handleStorage(request, env.STORAGE);
     if (env.ASSETS) return env.ASSETS.fetch(request);
     return new Response('Not Found', { status: 404 });
   },

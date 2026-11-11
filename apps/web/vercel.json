@@ -4,9 +4,12 @@
   "outputDirectory": "dist",
   "rewrites": [
     {
-      "source": "/(.*)",
+      "source": "/health",
+      "destination": "/api/health"
+    },
+    {
+      "source": "/((?!api/|health).*)",
       "destination": "/index.html"
     }
   ]
 }
-
