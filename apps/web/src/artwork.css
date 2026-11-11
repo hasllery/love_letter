@@ -1,0 +1,516 @@
+/* Display-only crop: original supplied image pixels remain untouched.
+   All sources share a card rectangle x=48,y=44,w=800,h=1120 at 896×1200,
+   or exactly twice those coordinates for the larger PNGs. */
+.card,
+.hand-slot .card,
+.hero-art .card {
+  height: 210px;
+}
+.card.small {
+  height: 84px;
+}
+.last-play-card {
+  height: 164px;
+}
+.last-play-card > .card {
+  height: 210px;
+}
+.mini-card {
+  height: 62px;
+}
+.supplied-artwork {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  overflow: hidden;
+  clip-path: inset(0 round 6% / 4.3%);
+  border-radius: 6% / 4.3%;
+  isolation: isolate;
+}
+.supplied-artwork > img {
+  position: absolute;
+  display: block;
+  width: 112%;
+  height: 107.142857%;
+  max-width: none;
+  left: -6%;
+  top: -3.928571%;
+  object-fit: fill;
+  user-select: none;
+  pointer-events: none;
+}
+.card .card-front {
+  gap: 0;
+  border-radius: 6% / 4.3%;
+  width: 100%;
+  height: 100%;
+  box-shadow: none;
+}
+.card-visible-face,
+.card-hidden-face {
+  border-radius: 6% / 4.3%;
+  overflow: visible;
+}
+.card {
+  border-radius: 6% / 4.3%;
+}
+.card-button {
+  border-radius: 6% / 4.3%;
+}
+.card.playable .card-visible-face:after {
+  border-radius: 6% / 4.3%;
+  inset: 0;
+  clip-path: inset(0 round 6% / 4.3%);
+  background: linear-gradient(
+    110deg,
+    transparent 35%,
+    #fff4 48%,
+    transparent 61%
+  );
+  transform: none;
+  animation: artwork-sheen 4s infinite;
+  background-size: 250% 100%;
+}
+.card.selected {
+  box-shadow:
+    0 0 0 2px #ffe29a99,
+    0 0 30px #f4c04e88,
+    0 12px 26px #0008;
+}
+.card[data-arriving='true'] {
+  pointer-events: none;
+}
+.last-play-card[data-awaiting-play='true'] > .card {
+  visibility: hidden;
+}
+.ornate-back {
+  border: 3px solid #c99a42 !important;
+  border-radius: 6% / 4.3% !important;
+  background: radial-gradient(
+    ellipse at center,
+    #6a2b58,
+    #34142f 70%
+  ) !important;
+  box-shadow:
+    inset 0 0 0 2px #edd194,
+    inset 0 0 0 5px #5d332b,
+    0 5px 14px #0005;
+  overflow: hidden;
+  padding: 6px !important;
+  display: block !important;
+}
+.back-frame {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  border: 1px solid #cfaa5f;
+  border-radius: 5px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 5px,
+    #f1d49309 5px,
+    #f1d49309 6px
+  );
+}
+.back-corner {
+  position: absolute;
+  color: #e0b466;
+  font-size: 26px;
+  font-family: Georgia, serif;
+  line-height: 1;
+}
+.back-corner.tl {
+  top: -3px;
+  left: -2px;
+}
+.back-corner.tr {
+  top: -3px;
+  right: -2px;
+  transform: scaleX(-1);
+}
+.back-corner.bl {
+  bottom: -3px;
+  left: -2px;
+  transform: scaleY(-1);
+}
+.back-corner.br {
+  bottom: -3px;
+  right: -2px;
+  transform: rotate(180deg);
+}
+.back-medallion {
+  width: 67%;
+  aspect-ratio: 1;
+  border: 2px solid #d7ad5a;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle, #68294d, #35162e);
+  box-shadow:
+    0 0 0 3px #34142f,
+    0 0 0 4px #cda055,
+    0 0 22px #f4c04e1a;
+  position: relative;
+  transform: rotate(-8deg);
+}
+.back-medallion > span {
+  font-size: 40px;
+  color: #ecd3a0;
+  text-shadow: 0 2px #180614;
+}
+.back-medallion > i {
+  position: absolute;
+  bottom: 13%;
+  right: 24%;
+  font-size: 15px;
+  font-style: normal;
+  color: #c85866;
+}
+.back-frame > small {
+  color: #dfc58a;
+  font-family: Georgia, serif;
+  text-transform: uppercase;
+  letter-spacing: 1.7px;
+  font-size: 8px;
+  text-align: center;
+  width: 90%;
+  margin-top: 14px;
+  line-height: 1.5;
+}
+.card.small .ornate-back,
+.flight-layer .ornate-back {
+  padding: 3px !important;
+  border-width: 2px !important;
+}
+.card.small .back-corner,
+.flight-layer .back-corner {
+  font-size: 15px;
+}
+.card.small .back-medallion {
+  border-width: 1px;
+  box-shadow:
+    0 0 0 2px #34142f,
+    0 0 0 3px #cda055;
+}
+.card.small .back-medallion > span {
+  font-size: 20px;
+}
+.card.small .back-medallion > i {
+  font-size: 8px;
+}
+.card.small .back-frame > small {
+  display: none;
+}
+.deck-pile .back-medallion > span {
+  font-size: 32px;
+}
+.deck-pile .back-medallion > i {
+  font-size: 12px;
+}
+.deck-pile .back-frame > small {
+  font-size: 6px;
+  letter-spacing: 1px;
+  margin-top: 10px;
+}
+.deck-shadow {
+  background: linear-gradient(
+    100deg,
+    #e9c97d,
+    #6a2b58 6%,
+    #34142f 94%,
+    #e9c97d
+  );
+  border-color: #c99a42;
+}
+.flight-face .card-front {
+  width: 100% !important;
+  height: 100% !important;
+  transform: none !important;
+  border-radius: 6% / 4.3%;
+}
+.flight-face,
+.flight-reverse {
+  border-radius: 6% / 4.3%;
+}
+.flight-layer .back-medallion > span {
+  font-size: clamp(18px, 3vw, 34px);
+}
+.flight-layer .back-medallion > i {
+  font-size: 11px;
+}
+.flight-layer .back-frame > small {
+  font-size: 6px;
+  margin-top: 9px;
+}
+.private-icon {
+  width: 110px;
+  height: 154px;
+  padding: 0;
+  background: none;
+  border: 0;
+}
+.private-icon > .supplied-artwork {
+  aspect-ratio: 5/7;
+}
+.private-flip {
+  box-shadow: 0 0 30px #f4c04e44;
+}
+.mini-card {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  overflow: visible;
+  border-radius: 4px;
+}
+.mini-card > .card-front {
+  width: 100%;
+  height: 100%;
+  transform: none;
+}
+.mini-card > b {
+  position: absolute;
+  left: 1px;
+  top: 1px;
+  z-index: 2;
+  background: #4e193d;
+  color: #ffe2a1;
+  border: 1px solid #c99a42;
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  display: grid;
+  place-items: center;
+  font-size: 13px;
+  line-height: 1;
+}
+.game-screen {
+  position: relative;
+}
+.reference-rail {
+  position: absolute;
+  left: 20px;
+  top: 77px;
+  width: 132px;
+  z-index: 14;
+}
+.reference-heading {
+  font-family: Georgia, serif;
+  font-size: 10px;
+  letter-spacing: 1px;
+  color: #f4c04e;
+  margin-bottom: 7px;
+}
+.reference-heading > small {
+  display: none;
+}
+.reference-thumb {
+  display: block;
+  border: 0;
+  background: none;
+  padding: 0;
+  width: 100%;
+  position: relative;
+  cursor: zoom-in;
+  border-radius: 8px;
+  filter: drop-shadow(0 5px 10px #0008);
+  transition: transform 0.2s;
+}
+.reference-thumb:hover {
+  transform: translateY(-3px);
+}
+.reference-artwork {
+  aspect-ratio: 5/7;
+  height: auto;
+}
+.reference-expand {
+  position: absolute;
+  left: 7px;
+  right: 7px;
+  bottom: 8px;
+  border: 1px solid #e7c87b99;
+  border-radius: 999px;
+  background: #280c20e8;
+  color: #fbe4af;
+  padding: 4px 6px;
+  font-size: 9px;
+  line-height: 1.3;
+}
+.reference-help {
+  display: none;
+}
+.reference-full {
+  aspect-ratio: 5/7;
+  height: auto;
+  width: min(100%, 450px);
+  margin: 0 auto;
+}
+.reference-accessible {
+  font-size: 12px;
+  color: #e8d5b0;
+  margin-top: 18px;
+}
+.reference-accessible > summary {
+  cursor: pointer;
+  color: #f4c04e;
+  margin-bottom: 14px;
+}
+.reference-accessible p {
+  font-size: 12px;
+}
+.reference-rail:has(.reference-thumb:focus-visible) {
+  z-index: 27;
+}
+@keyframes artwork-sheen {
+  0%,
+  35% {
+    background-position: 150% 0;
+  }
+  80%,
+  100% {
+    background-position: -150% 0;
+  }
+}
+@media (min-width: 1600px) {
+  .reference-rail {
+    left: 30px;
+    top: 80px;
+    width: 155px;
+  }
+  .reference-heading {
+    font-size: 11px;
+  }
+}
+@media (max-width: 1150px) and (min-width: 761px) {
+  .reference-rail {
+    left: 16px;
+    width: 115px;
+    top: 78px;
+  }
+}
+@media (max-width: 760px) {
+  .hand-slot .card {
+    height: 175px;
+  }
+  .hero-art .card {
+    height: 175px;
+  }
+  .opponent-hand .card.small {
+    height: 56px;
+  }
+  .reference-rail {
+    left: auto;
+    right: 0;
+    top: 62px;
+    width: 32px;
+    z-index: 26;
+    border: 1px solid #c99a42aa;
+    border-right: 0;
+    background: #280c20ee;
+    border-radius: 7px 0 0 7px;
+    padding: 3px;
+  }
+  .reference-heading {
+    display: none;
+  }
+  .reference-thumb {
+    filter: none;
+  }
+  .reference-expand {
+    position: static;
+    display: block;
+    border: 0;
+    background: transparent;
+    border-radius: 0;
+    writing-mode: vertical-rl;
+    margin: 5px auto 1px;
+    font-size: 8px;
+    padding: 0;
+    color: #ffe4a1;
+    letter-spacing: 0.3px;
+  }
+  .reference-thumb:hover {
+    transform: none;
+  }
+  .reference-thumb > .reference-artwork {
+    width: 24px;
+    height: 34px;
+  }
+  .seat-north > .played-tray,
+  .seats-6 .seat-north > .played-tray {
+    left: 15px;
+    top: 122px;
+  }
+  .hand-slot .card-front {
+    padding: 0;
+    border: 0;
+  }
+  .hand-fan:has(> .hand-slot:nth-child(3)) .card {
+    width: 108px;
+    height: 151px;
+  }
+  .opponent-hand .ornate-back {
+    padding: 2px !important;
+    border-width: 1px !important;
+  }
+  .opponent-hand .back-corner {
+    font-size: 10px;
+  }
+  .opponent-hand .back-medallion > span {
+    font-size: 15px !important;
+  }
+  .opponent-hand .back-medallion > i {
+    font-size: 6px;
+  }
+  .deck-pile .back-medallion > span {
+    font-size: 24px;
+  }
+  .deck-pile .back-frame > small {
+    font-size: 5px;
+    letter-spacing: 0.4px;
+    margin-top: 9px;
+  }
+  .deck-pile .back-corner {
+    font-size: 18px;
+  }
+  .private-icon {
+    width: 100px;
+    height: 140px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .card.playable .card-visible-face:after {
+    animation: none;
+  }
+  .reference-thumb {
+    transition: none;
+  }
+}
+
+button.deck-pile {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+}
+button.deck-pile:disabled {
+  opacity: 1;
+  cursor: default;
+}
+button.deck-pile:not(:disabled) {
+  cursor: pointer;
+  filter: drop-shadow(0 0 16px #f4c96e);
+}
+button.deck-pile:focus-visible {
+  outline: 3px solid #ffe1a0;
+  outline-offset: 8px;
+}

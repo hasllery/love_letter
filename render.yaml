@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: crimson-court-server
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    envVars:
+      - key: PORT
+        value: 3001
+      - key: CORS_ORIGIN
+        sync: false

@@ -1,0 +1,6 @@
+CREATE TABLE rooms (
+  code TEXT PRIMARY KEY NOT NULL,
+  version INTEGER NOT NULL,
+  body TEXT NOT NULL,
+  touched INTEGER NOT NULL
+);
