@@ -8,6 +8,7 @@
   "scripts": {
     "dev": "concurrently -k \"pnpm --filter @court/server dev\" \"pnpm --filter @court/web dev\"",
     "build": "pnpm --filter @court/web build && pnpm --filter @court/server build",
+    "build:hosted": "node scripts/build-hosted.mjs",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",

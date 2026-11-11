@@ -1,4 +1,4 @@
-import { cpSync, mkdirSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync } from 'node:fs';
 import { createRequire } from 'node:module';
 const { build } = createRequire(
   new URL('../apps/server/package.json', import.meta.url),
@@ -15,9 +15,11 @@ const result = spawnSync(
 );
 if (result.status !== 0) process.exit(result.status ?? 1);
 mkdirSync('dist/server', { recursive: true });
-mkdirSync('dist/.openai', { recursive: true });
 cpSync('apps/web/dist', 'dist/client', { recursive: true });
-cpSync('.openai/hosting.json', 'dist/.openai/hosting.json');
+if (existsSync('.openai/hosting.json')) {
+  mkdirSync('dist/.openai', { recursive: true });
+  cpSync('.openai/hosting.json', 'dist/.openai/hosting.json');
+}
 await build({
   entryPoints: ['apps/server/src/hosted.ts'],
   bundle: true,
