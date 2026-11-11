@@ -29,3 +29,4 @@ await build({
   outfile: 'dist/server/index.js',
   minify: true,
 });
+cpSync('dist/server/index.js', 'dist/client/_worker.js');
