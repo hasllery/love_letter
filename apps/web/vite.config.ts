@@ -9,6 +9,7 @@ export default defineConfig(({ mode }) => ({
     port: 5173,
     strictPort: true,
     host: true,
+    allowedHosts: true,
     proxy: {
       '/socket.io': {
         target: 'http://127.0.0.1:3001',
