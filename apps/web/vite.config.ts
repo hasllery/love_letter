@@ -5,5 +5,17 @@ export default defineConfig(({ mode }) => ({
   plugins: [react(), tailwindcss()],
   envDir: '../..',
   base: loadEnv(mode, '../..', '').VITE_BASE_PATH || '/',
-  server: { port: 5173, strictPort: true },
+  server: {
+    port: 5173,
+    strictPort: true,
+    host: true,
+    proxy: {
+      '/socket.io': {
+        target: 'http://127.0.0.1:3001',
+        ws: true,
+      },
+      '/health': 'http://127.0.0.1:3001',
+      '/api': 'http://127.0.0.1:3001',
+    },
+  },
 }));

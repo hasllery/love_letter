@@ -12,11 +12,22 @@ function saved(): Credentials | null {
     return null;
   }
 }
+function isCloudDomain(): boolean {
+  if (typeof location === 'undefined') return false;
+  const host = location.hostname;
+  return (
+    host.endsWith('.pages.dev') ||
+    host.endsWith('.vercel.app') ||
+    host.endsWith('.workers.dev') ||
+    (location.protocol === 'https:' &&
+      !['localhost', '127.0.0.1'].includes(host) &&
+      !/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(host))
+  );
+}
+
 const useHosted =
   import.meta.env.VITE_HOSTED === 'true' ||
-  (typeof location !== 'undefined' &&
-    !import.meta.env.VITE_SERVER_URL &&
-    !['localhost', '127.0.0.1'].includes(location.hostname));
+  (isCloudDomain() && !import.meta.env.VITE_SERVER_URL);
 
 export const socket: Socket<ServerEvents, ClientEvents> = useHosted
   ? (new HostedTransport() as unknown as Socket<ServerEvents, ClientEvents>)
