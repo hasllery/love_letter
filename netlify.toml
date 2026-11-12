@@ -1,6 +1,10 @@
 [build]
   command = "pnpm --filter @court/web build"
   publish = "apps/web/dist"
+  functions = "netlify/functions"
+
+[functions]
+  node_bundler = "esbuild"
 
 [[redirects]]
   from = "/api/court"
@@ -14,6 +18,11 @@
 
 [[redirects]]
   from = "/health"
+  to = "/.netlify/functions/court"
+  status = 200
+
+[[redirects]]
+  from = "/api/oracle"
   to = "/.netlify/functions/court"
   status = 200
 

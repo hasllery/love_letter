@@ -125,6 +125,7 @@ export async function api(
         origin.endsWith('.pages.dev') ||
         origin.endsWith('.workers.dev') ||
         origin.endsWith('.vercel.app') ||
+        origin.endsWith('.netlify.app') ||
         origin.endsWith('.trycloudflare.com') ||
         origin.endsWith('.ngrok-free.app') ||
         origin.endsWith('.loca.lt') ||
