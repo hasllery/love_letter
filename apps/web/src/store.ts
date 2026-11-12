@@ -18,7 +18,9 @@ function isCloudDomain(): boolean {
   return (
     host.endsWith('.pages.dev') ||
     host.endsWith('.vercel.app') ||
-    host.endsWith('.workers.dev')
+    host.endsWith('.workers.dev') ||
+    host.includes('vercel.app') ||
+    host.includes('vercel.sh')
   );
 }
 

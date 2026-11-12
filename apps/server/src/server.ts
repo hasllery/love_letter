@@ -95,6 +95,7 @@ export function createCourtServer(
   const membership = new Map<string, { room: Room; player: Client }>();
   const rates = new Map<string, { count: number; since: number }>();
   app.get('/health', (_req, res) => res.json({ status: 'ok' }));
+  app.get('/api/health', (_req, res) => res.json({ status: 'ok' }));
   app.use(express.json({ limit: '64kb' }));
   app.all('/api/court', async (req, res) => {
     try {

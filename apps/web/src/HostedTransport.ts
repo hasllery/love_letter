@@ -26,9 +26,30 @@ export class HostedTransport {
     if (this.running) return this;
     this.running = true;
     const generation = ++this.generation;
-    void fetch('/health')
-      .then((r) => {
-        if (!r.ok) throw new Error();
+    const isOk = (r: Response) =>
+      r.ok && !r.headers.get('content-type')?.includes('text/html');
+    const checkReady = async () => {
+      try {
+        const r = await fetch('/api/health');
+        if (isOk(r)) return true;
+      } catch {}
+      try {
+        const r = await fetch('/health');
+        if (isOk(r)) return true;
+      } catch {}
+      try {
+        const r = await fetch('/api/court', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ event: 'poll' }),
+        });
+        if (isOk(r)) return true;
+      } catch {}
+      return false;
+    };
+    void checkReady()
+      .then((ok) => {
+        if (!ok) throw new Error();
         if (!this.running || generation !== this.generation) return;
         this.connected = true;
         this.notify('connect');
