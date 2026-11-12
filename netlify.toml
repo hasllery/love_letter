@@ -1,0 +1,23 @@
+[build]
+  command = "pnpm --filter @court/web build"
+  publish = "apps/web/dist"
+
+[[redirects]]
+  from = "/api/court"
+  to = "/.netlify/functions/court"
+  status = 200
+
+[[redirects]]
+  from = "/api/health"
+  to = "/.netlify/functions/court"
+  status = 200
+
+[[redirects]]
+  from = "/health"
+  to = "/.netlify/functions/court"
+  status = 200
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

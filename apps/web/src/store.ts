@@ -20,7 +20,8 @@ function isCloudDomain(): boolean {
     host.endsWith('.vercel.app') ||
     host.endsWith('.workers.dev') ||
     host.includes('vercel.app') ||
-    host.includes('vercel.sh')
+    host.includes('vercel.sh') ||
+    host.includes('netlify.app')
   );
 }
 
